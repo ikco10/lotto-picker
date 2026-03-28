@@ -2,7 +2,6 @@
 
 import { startTransition, useEffect, useRef, useState } from "react";
 
-import { sampleDraws } from "@/src/data/lotto-sample";
 import { MODE_OPTIONS, PERIOD_OPTIONS } from "@/src/lib/constants";
 import {
   filterDrawsByPeriod,
@@ -81,7 +80,7 @@ const ChoiceButtonGroup = <T extends string>({
 };
 
 export const LottoGenerator = () => {
-  const [draws, setDraws] = useState<LottoDraw[]>(sampleDraws);
+  const [draws, setDraws] = useState<LottoDraw[]>([]);
   const [period, setPeriod] = useState<PeriodKey>("all");
   const [mode, setMode] = useState<GenerationMode>("weighted");
   const [isLoading, setIsLoading] = useState(true);
@@ -316,7 +315,11 @@ export const LottoGenerator = () => {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xl font-black text-slate-900">{formatPeriodLabel(period)}</p>
-                <p className="mt-1 text-sm text-slate-500">{effectivePeriodCount}회차 데이터</p>
+                {isLoading ? (
+                  <span className="mt-2 block h-4 w-24 animate-pulse rounded-full bg-white/80" />
+                ) : (
+                  <p className="mt-1 text-sm text-slate-500">{effectivePeriodCount}회차 데이터</p>
+                )}
               </div>
               <div className="rounded-full bg-white/85 px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-white/90">
                 {formatModeLabel(mode)}
@@ -325,21 +328,37 @@ export const LottoGenerator = () => {
           </div>
 
           <div className="rounded-[24px] bg-slate-50/90 px-4 py-4 ring-1 ring-white/80">
-            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
-              <span className="font-semibold text-slate-900">
-                {`${periodDraws.length}회차 기준`}
-              </span>
-            </div>
-            <div className="mt-3 grid grid-cols-6 gap-1.5">
-              {topNumbers.map((item) => (
-                <div key={item.value} className="flex flex-col items-center gap-1">
-                  <LottoBall value={item.value} />
-                  <span className="text-[11px] font-medium text-slate-500">
-                    {item.count}회
+            {isLoading ? (
+              <div>
+                <span className="block h-4 w-20 animate-pulse rounded-full bg-white" />
+                <div className="mt-3 grid grid-cols-6 gap-1.5">
+                  {Array.from({ length: 6 }, (_, index) => (
+                    <div key={index} className="flex flex-col items-center gap-1">
+                      <span className="h-10 w-10 animate-pulse rounded-full bg-white ring-1 ring-slate-200 sm:h-11 sm:w-11" />
+                      <span className="h-3 w-8 animate-pulse rounded-full bg-white" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                  <span className="font-semibold text-slate-900">
+                    {`${periodDraws.length}회차 기준`}
                   </span>
                 </div>
-              ))}
-            </div>
+                <div className="mt-3 grid grid-cols-6 gap-1.5">
+                  {topNumbers.map((item) => (
+                    <div key={item.value} className="flex flex-col items-center gap-1">
+                      <LottoBall value={item.value} />
+                      <span className="text-[11px] font-medium text-slate-500">
+                        {item.count}회
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
