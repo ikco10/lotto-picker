@@ -81,6 +81,7 @@ const ChoiceButtonGroup = <T extends string>({
 
 export const LottoGenerator = () => {
   const [draws, setDraws] = useState<LottoDraw[]>([]);
+  const [drawsError, setDrawsError] = useState<string | null>(null);
   const [period, setPeriod] = useState<PeriodKey>("all");
   const [mode, setMode] = useState<GenerationMode>("weighted");
   const [isLoading, setIsLoading] = useState(true);
@@ -102,6 +103,7 @@ export const LottoGenerator = () => {
 
     const loadDraws = async () => {
       try {
+        setDrawsError(null);
         const response = await fetch("/api/lotto", {
           cache: "no-store",
         });
@@ -116,6 +118,9 @@ export const LottoGenerator = () => {
           setDraws(normalized);
         }
       } catch {
+        if (active) {
+          setDrawsError("회차 데이터를 불러오지 못했습니다.");
+        }
       } finally {
         if (active) {
           setIsLoading(false);
@@ -267,6 +272,11 @@ export const LottoGenerator = () => {
 
   return (
     <div className="space-y-5">
+      {drawsError ? (
+        <div className="rounded-[24px] bg-rose-50/90 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-100">
+          {drawsError}
+        </div>
+      ) : null}
       <section className="rounded-[28px] bg-white/90 p-5 shadow-sm ring-1 ring-slate-200">
         <div className="space-y-4">
           <div>

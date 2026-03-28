@@ -1,4 +1,3 @@
-import { sampleDraws } from "@/src/data/lotto-sample";
 import { LOTTO_DATA_URL } from "@/src/lib/constants";
 import { normalizeRemoteDraws } from "@/src/lib/lotto";
 
@@ -24,9 +23,13 @@ export async function GET() {
       source: "remote",
     });
   } catch {
-    return Response.json({
-      draws: sampleDraws,
-      source: "sample",
-    });
+    return Response.json(
+      {
+        error: "lotto data unavailable",
+      },
+      {
+        status: 503,
+      },
+    );
   }
 }

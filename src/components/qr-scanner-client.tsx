@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { sampleDraws } from "@/src/data/lotto-sample";
 import { LottoBall } from "@/src/components/lotto-ball";
 import {
   formatMatchSummaryLabel,
@@ -32,7 +31,8 @@ const getBarcodeDetector = (): BarcodeDetectorCtor | null => {
 };
 
 export const QrScannerClient = () => {
-  const [draws, setDraws] = useState<LottoDraw[]>(sampleDraws);
+  const [draws, setDraws] = useState<LottoDraw[]>([]);
+  const [drawsError, setDrawsError] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [ticket, setTicket] = useState<ParsedQrTicket | null>(null);
@@ -45,6 +45,7 @@ export const QrScannerClient = () => {
 
     const loadDraws = async () => {
       try {
+        setDrawsError(null);
         const response = await fetch("/api/lotto", {
           cache: "no-store",
         });
@@ -60,6 +61,9 @@ export const QrScannerClient = () => {
           setDraws(normalized);
         }
       } catch {
+        if (active) {
+          setDrawsError("당첨 데이터를 불러오지 못했습니다.");
+        }
       }
     };
 
@@ -135,6 +139,11 @@ export const QrScannerClient = () => {
 
   return (
     <div className="space-y-5">
+      {drawsError ? (
+        <div className="rounded-[24px] bg-rose-50/90 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-100">
+          {drawsError}
+        </div>
+      ) : null}
       <section className="rounded-[32px] bg-white/85 p-5 shadow-sm ring-1 ring-white/80 backdrop-blur">
         <div className="space-y-4">
           <label className="flex cursor-pointer flex-col items-center justify-center rounded-[28px] border border-dashed border-slate-300 bg-[linear-gradient(135deg,#fffdf8_0%,#f3f9ff_100%)] px-5 py-10 text-center transition hover:border-slate-400">
