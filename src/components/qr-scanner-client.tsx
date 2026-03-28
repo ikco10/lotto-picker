@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { sampleDraws } from "@/src/data/lotto-sample";
 import { LottoBall } from "@/src/components/lotto-ball";
 import {
+  formatMatchSummaryLabel,
   getMatchSummary,
   normalizeRemoteDraws,
   parseLottoQrValue,
@@ -227,7 +228,7 @@ export const QrScannerClient = () => {
                         {draw ? (
                           <>
                             <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-100">
-                              {summary?.matchCount ?? 0}개 일치{summary?.bonusMatched ? " + 보너스" : ""}
+                              {summary ? formatMatchSummaryLabel(summary) : "0개 일치"}
                             </span>
                             <span
                               className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${

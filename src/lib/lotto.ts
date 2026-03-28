@@ -521,6 +521,14 @@ export type MatchSummary = {
   rank: 1 | 2 | 3 | 4 | 5 | null;
 };
 
+export const formatMatchSummaryLabel = (summary: MatchSummary) => {
+  if (summary.matchCount === 5 && summary.bonusMatched) {
+    return "5개 일치 + 보너스";
+  }
+
+  return `${summary.matchCount}개 일치`;
+};
+
 export type ParsedQrTicket = {
   round: number;
   numbers: number[][];

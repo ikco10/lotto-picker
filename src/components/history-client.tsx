@@ -5,6 +5,7 @@ import { startTransition, useEffect, useMemo, useState } from "react";
 import { sampleDraws } from "@/src/data/lotto-sample";
 import { useSavedRecommendations } from "@/src/hooks/use-saved-recommendations";
 import {
+  formatMatchSummaryLabel,
   formatModeLabel,
   formatPeriodLabel,
   getReferenceDrawForDate,
@@ -402,7 +403,7 @@ export const HistoryClient = () => {
                                   {referenceDraw.round}회차 기준
                                 </span>
                                 <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-100">
-                                  {summary.matchCount}개 일치{summary.bonusMatched ? " + 보너스" : ""}
+                                  {formatMatchSummaryLabel(summary)}
                                 </span>
                                 <span
                                   className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${
