@@ -172,7 +172,6 @@ export const copyLottoNumbersImage = async (payload: SharePayload) => {
   await navigator.clipboard.write([
     new ClipboardItemCtor({
       "image/png": blob,
-      "text/plain": new Blob(["lotto-picker image"], { type: "text/plain" }),
     }),
   ]);
 
