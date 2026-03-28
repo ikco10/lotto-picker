@@ -6,13 +6,14 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { href: "/", label: "생성" },
   { href: "/history", label: "기록" },
+  { href: "/qr", label: "QR 확인" },
 ];
 
 export const AppNav = () => {
   const pathname = usePathname();
 
   return (
-    <nav className="relative z-20 grid grid-cols-2 gap-2 rounded-[24px] bg-white/72 p-1.5 shadow-sm ring-1 ring-white/85 backdrop-blur">
+    <nav className="relative z-20 grid grid-cols-3 gap-2 rounded-[24px] bg-white/72 p-1.5 shadow-sm ring-1 ring-white/85 backdrop-blur">
       {navItems.map((item) => (
         <Link
           key={item.href}
