@@ -169,9 +169,17 @@ export const copyLottoNumbersImage = async (payload: SharePayload) => {
     throw new Error("clipboard unsupported");
   }
 
+  if (
+    "supports" in ClipboardItemCtor &&
+    typeof ClipboardItemCtor.supports === "function" &&
+    !ClipboardItemCtor.supports("image/png")
+  ) {
+    throw new Error("clipboard png unsupported");
+  }
+
   await navigator.clipboard.write([
     new ClipboardItemCtor({
-      "image/png": blob,
+      "image/png": Promise.resolve(blob),
     }),
   ]);
 
