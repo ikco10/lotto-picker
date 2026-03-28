@@ -1,6 +1,10 @@
 import type { GenerationMode, PeriodKey } from "@/src/types/lotto";
 
-export const LOTTO_DATA_URL = "https://smok95.github.io/lotto/results/all.json";
+export const LOTTO_DATA_SOURCES = [
+  "https://smok95.github.io/lotto/results/all.json",
+  "https://cdn.jsdelivr.net/gh/smok95/lotto@main/results/all.json",
+  "https://raw.githubusercontent.com/smok95/lotto/main/results/all.json",
+] as const;
 export const STORAGE_KEY = "lotto-weighted-recommender-history";
 
 export const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [

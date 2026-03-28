@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 로또 피커
 
-## Getting Started
+`로또 피커`는 로또 번호 5세트를 생성하고, 저장 기록과 QR 이미지 인식으로 당첨 여부를 확인할 수 있는 개인용 웹 앱입니다.
 
-First, run the development server:
+## 기능
+
+- `생성`
+  - 가중 모드, 균등 모드, 분산 모드 지원
+  - 기간별 데이터 기준으로 5세트 생성
+  - 생성 결과 저장, PNG 저장, 텍스트 복사, 일부 브라우저 이미지 복사 지원
+
+- `기록`
+  - 저장된 번호 목록 확인
+  - 선택 삭제, 전체 삭제, 정렬
+  - 각 세트별 당첨 결과 확인
+  - 공유 팝업에서 PNG 저장 또는 복사 선택
+
+- `QR 확인`
+  - 휴대폰에 저장된 로또 용지 이미지를 업로드해 QR 인식
+  - QR 주소 파라미터에서 회차와 번호 세트를 파싱
+  - 기록 탭과 같은 방식으로 당첨 결과 표시
+
+## 기술 스택
+
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS 4
+
+## 실행
+
+```bash
+npm install
+npm run dev
+```
+
+기본 주소는 `http://localhost:3000` 입니다.
+
+## 스크립트
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
+npm test
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 데이터
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- 로또 회차 데이터는 외부 JSON 소스를 읽어옵니다.
+- 현재는 여러 원격 소스를 순차 시도하고, 마지막 성공 결과를 짧게 메모리 캐시합니다.
+- 모든 원격 소스가 실패하고 캐시도 없으면 앱에는 오류 문구가 표시됩니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 테스트
 
-## Learn More
+현재 자동 테스트는 순수 로직 위주로만 구성되어 있습니다.
 
-To learn more about Next.js, take a look at the following resources:
+- 원격 로또 데이터 정규화
+- QR URL 파싱
+- 생성 시각 기준 회차 판정
+- 당첨 결과 문구 포맷
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 참고
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 저장 기록은 `localStorage`에 보관됩니다.
+- 생성 결과는 새로고침 시 유지되지 않고, 앱 내부 탭 이동 시에만 유지됩니다.
+- QR 인식은 브라우저의 `BarcodeDetector` 지원 여부에 따라 동작 범위가 달라질 수 있습니다.
