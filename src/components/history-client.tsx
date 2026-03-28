@@ -2,7 +2,6 @@
 
 import { startTransition, useEffect, useMemo, useState } from "react";
 
-import { sampleDraws } from "@/src/data/lotto-sample";
 import { useSavedRecommendations } from "@/src/hooks/use-saved-recommendations";
 import {
   formatMatchSummaryLabel,
@@ -35,7 +34,8 @@ const timeLabel = (value: string) =>
 
 export const HistoryClient = () => {
   const { records, setRecords, loaded } = useSavedRecommendations();
-  const [draws, setDraws] = useState<LottoDraw[]>(sampleDraws);
+  const [draws, setDraws] = useState<LottoDraw[]>([]);
+  const [isLoadingDraws, setIsLoadingDraws] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<"latest" | "oldest">("latest");
   const [shareState, setShareState] = useState<Record<string, string>>({});
@@ -63,6 +63,10 @@ export const HistoryClient = () => {
           setDraws(normalized);
         }
       } catch {
+      } finally {
+        if (active) {
+          setIsLoadingDraws(false);
+        }
       }
     };
 
@@ -91,7 +95,7 @@ export const HistoryClient = () => {
     accumulator[groupKey].push(record);
     return accumulator;
   }, {});
-  const latestDraw = draws.at(-1) ?? sampleDraws.at(-1) ?? null;
+  const latestDraw = draws.at(-1) ?? null;
 
   const deleteRecord = (id: string) => {
     startTransition(() => {
@@ -311,7 +315,7 @@ export const HistoryClient = () => {
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500 ring-1 ring-slate-200">
               {filteredRecords.length}개
             </span>
-            {latestDraw ? (
+            {!isLoadingDraws && latestDraw ? (
               <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
                 최신 {latestDraw.round}회차
               </span>
