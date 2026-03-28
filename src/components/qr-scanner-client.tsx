@@ -33,7 +33,7 @@ const getBarcodeDetector = (): BarcodeDetectorCtor | null => {
 export const QrScannerClient = () => {
   const [draws, setDraws] = useState<LottoDraw[]>(sampleDraws);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [message, setMessage] = useState("이미지를 선택하면 QR 코드를 읽습니다.");
+  const [message, setMessage] = useState<string | null>(null);
   const [ticket, setTicket] = useState<ParsedQrTicket | null>(null);
   const [rawQrValue, setRawQrValue] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -76,7 +76,7 @@ export const QrScannerClient = () => {
       return;
     }
     setStatus("loading");
-    setMessage("QR 코드를 읽는 중입니다.");
+    setMessage(null);
     setTicket(null);
     setRawQrValue(null);
 
@@ -112,7 +112,7 @@ export const QrScannerClient = () => {
 
       setTicket(parsed);
       setStatus("success");
-      setMessage("QR 코드를 읽었습니다.");
+      setMessage(null);
     } catch {
       setStatus("error");
       setMessage("이미지 QR 인식에 실패했습니다. 다른 이미지로 다시 시도해 주세요.");
@@ -121,7 +121,7 @@ export const QrScannerClient = () => {
 
   const reset = () => {
     setStatus("idle");
-    setMessage("이미지를 선택하면 QR 코드를 읽습니다.");
+    setMessage(null);
     setTicket(null);
     setRawQrValue(null);
 
@@ -136,13 +136,6 @@ export const QrScannerClient = () => {
     <div className="space-y-5">
       <section className="rounded-[32px] bg-white/85 p-5 shadow-sm ring-1 ring-white/80 backdrop-blur">
         <div className="space-y-4">
-          <div>
-            <p className="text-2xl font-black text-slate-900">QR로 당첨 확인</p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              휴대폰에 저장된 로또 QR 이미지를 올리면 우선 QR 원문을 읽어옵니다.
-            </p>
-          </div>
-
           <label className="flex cursor-pointer flex-col items-center justify-center rounded-[28px] border border-dashed border-slate-300 bg-[linear-gradient(135deg,#fffdf8_0%,#f3f9ff_100%)] px-5 py-10 text-center transition hover:border-slate-400">
             <span className="text-base font-bold text-slate-900">이미지 선택</span>
             <span className="mt-2 text-sm text-slate-500">PNG, JPG, HEIC 스크린샷 업로드</span>
@@ -180,12 +173,11 @@ export const QrScannerClient = () => {
 
       <section className="rounded-[32px] bg-white/80 p-5 shadow-sm ring-1 ring-white/80 backdrop-blur">
         <div className="space-y-4">
-          <div className="rounded-[24px] bg-slate-50/90 px-4 py-4 ring-1 ring-white/80">
-            <p className="text-sm font-semibold text-slate-900">
-              {status === "loading" ? "분석 중" : status === "success" ? "인식 완료" : status === "error" ? "인식 실패" : "대기 중"}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">{message}</p>
-          </div>
+          {status === "error" && message ? (
+            <div className="rounded-[24px] bg-rose-50/90 px-4 py-4 ring-1 ring-rose-100">
+              <p className="text-sm leading-6 text-rose-700">{message}</p>
+            </div>
+          ) : null}
 
           {ticket ? (
             <div className="space-y-4">
