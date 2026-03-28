@@ -405,28 +405,31 @@ export const LottoGenerator = () => {
         ) : null}
         {shareFeedback ? <p className="mt-2 text-sm text-slate-500">{shareFeedback}</p> : null}
 
-        {shareOptionsOpen ? (
-          <div className="fixed inset-0 z-40 flex items-end justify-center bg-slate-950/18 p-4 sm:items-center">
-            <button
-              type="button"
-              aria-label="공유 선택 닫기"
-              onClick={() => setShareOptionsOpen(false)}
-              className="absolute inset-0 cursor-default"
-            />
-            <div className="relative z-10 w-full max-w-sm rounded-[28px] bg-white p-4 shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-slate-200">
-              <div className="mb-3">
-                <p className="text-base font-bold text-slate-900">공유 방식 선택</p>
-                <p className="mt-1 text-sm text-slate-500">이미지를 저장하거나 클립보드에 복사할 수 있습니다.</p>
-              </div>
-              <div className="grid gap-2">
-                <button
-                  type="button"
-                  onClick={downloadCurrentResults}
-                  disabled={isSharing}
-                  className="rounded-2xl bg-[linear-gradient(135deg,#fff7de_0%,#ffefbf_100%)] px-4 py-3.5 text-sm font-semibold text-amber-950 ring-1 ring-amber-200 transition active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  PNG 저장
-                </button>
+      </section>
+
+      {shareOptionsOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/28 p-4 sm:items-center">
+          <button
+            type="button"
+            aria-label="공유 선택 닫기"
+            onClick={() => setShareOptionsOpen(false)}
+            className="absolute inset-0"
+          />
+          <div className="relative z-10 w-full max-w-sm rounded-[28px] bg-white p-4 shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-slate-200">
+            <div className="mb-3">
+              <p className="text-base font-bold text-slate-900">공유 방식 선택</p>
+              <p className="mt-1 text-sm text-slate-500">이미지를 저장하거나 번호를 복사할 수 있습니다.</p>
+            </div>
+            <div className="grid gap-2">
+              <button
+                type="button"
+                onClick={downloadCurrentResults}
+                disabled={isSharing}
+                className="rounded-2xl bg-[linear-gradient(135deg,#fff7de_0%,#ffefbf_100%)] px-4 py-3.5 text-sm font-semibold text-amber-950 ring-1 ring-amber-200 transition active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                PNG 저장
+              </button>
+              {clipboardSupport.reason !== "samsung_browser" ? (
                 <button
                   type="button"
                   onClick={copyCurrentResults}
@@ -435,33 +438,35 @@ export const LottoGenerator = () => {
                 >
                   이미지 복사
                 </button>
-                <button
-                  type="button"
-                  onClick={copyCurrentResultsText}
-                  disabled={isSharing}
-                  className="rounded-2xl bg-[linear-gradient(135deg,#eef2ff_0%,#dfe7ff_100%)] px-4 py-3.5 text-sm font-semibold text-indigo-950 ring-1 ring-indigo-200 transition active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  텍스트 복사
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShareOptionsOpen(false)}
-                  className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition active:scale-[0.985]"
-                >
-                  취소
-                </button>
-              </div>
-              {!clipboardSupport.supported ? (
-                <p className="mt-3 text-sm text-slate-500">
-                  {clipboardSupport.reason === "secure_context"
-                    ? "보안 연결에서만 이미지 복사를 시도할 수 있습니다."
-                    : "이미지 복사가 실패하면 PNG 저장으로 자동 전환됩니다."}
-                </p>
               ) : null}
+              <button
+                type="button"
+                onClick={copyCurrentResultsText}
+                disabled={isSharing}
+                className="rounded-2xl bg-[linear-gradient(135deg,#eef2ff_0%,#dfe7ff_100%)] px-4 py-3.5 text-sm font-semibold text-indigo-950 ring-1 ring-indigo-200 transition active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                텍스트 복사
+              </button>
+              <button
+                type="button"
+                onClick={() => setShareOptionsOpen(false)}
+                className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition active:scale-[0.985]"
+              >
+                취소
+              </button>
             </div>
+            {!clipboardSupport.supported ? (
+              <p className="mt-3 text-sm text-slate-500">
+                {clipboardSupport.reason === "samsung_browser"
+                  ? "삼성 브라우저에서는 이미지 복사 대신 PNG 저장 또는 텍스트 복사를 사용해 주세요."
+                  : clipboardSupport.reason === "secure_context"
+                    ? "보안 연결에서만 이미지 복사를 시도할 수 있습니다."
+                    : "이미지 복사가 실패하면 다른 방식으로 자동 처리됩니다."}
+              </p>
+            ) : null}
           </div>
-        ) : null}
-      </section>
+        </div>
+      ) : null}
     </div>
   );
 };

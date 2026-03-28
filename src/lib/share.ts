@@ -11,7 +11,7 @@ type SharePayload = {
 
 export type ClipboardSupport = {
   supported: boolean;
-  reason?: "secure_context" | "clipboard_api" | "clipboard_item";
+  reason?: "secure_context" | "clipboard_api" | "clipboard_item" | "samsung_browser";
 };
 
 const WIDTH = 960;
@@ -385,6 +385,10 @@ export const copyLottoNumbersImageWithFallback = async (payload: SharePayload) =
 export const getClipboardImageSupport = (): ClipboardSupport => {
   if (typeof window === "undefined" || !window.isSecureContext) {
     return { supported: false, reason: "secure_context" };
+  }
+
+  if (typeof navigator !== "undefined" && /SamsungBrowser/i.test(navigator.userAgent)) {
+    return { supported: false, reason: "samsung_browser" };
   }
 
   const ClipboardItemCtor =
