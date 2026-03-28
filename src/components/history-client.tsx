@@ -17,6 +17,7 @@ import {
   copyLottoNumbersText,
   createRecommendationSharePayload,
   downloadLottoNumbers,
+  getClipboardImageSupport,
 } from "@/src/lib/share";
 import type { LottoDraw, SavedRecommendation } from "@/src/types/lotto";
 
@@ -38,6 +39,9 @@ export const HistoryClient = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<"latest" | "oldest">("latest");
   const [shareState, setShareState] = useState<Record<string, string>>({});
+  const [shareRecord, setShareRecord] = useState<SavedRecommendation | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const clipboardSupport = getClipboardImageSupport();
 
   useEffect(() => {
     let active = true;
@@ -199,6 +203,68 @@ export const HistoryClient = () => {
     }
   };
 
+  const openShareOptions = (record: SavedRecommendation) => {
+    if (isSharing) {
+      return;
+    }
+
+    setShareState((current) => ({ ...current, [record.id]: "" }));
+    setShareRecord(record);
+  };
+
+  const closeShareOptions = () => {
+    if (isSharing) {
+      return;
+    }
+
+    setShareRecord(null);
+  };
+
+  const handleRecordDownload = async () => {
+    if (!shareRecord || isSharing) {
+      return;
+    }
+
+    setIsSharing(true);
+
+    try {
+      await downloadRecord(shareRecord);
+    } finally {
+      setShareRecord(null);
+      setIsSharing(false);
+    }
+  };
+
+  const handleRecordImageCopy = async () => {
+    if (!shareRecord || isSharing) {
+      return;
+    }
+
+    setIsSharing(true);
+
+    try {
+      await copyRecord(shareRecord);
+    } finally {
+      setShareRecord(null);
+      setIsSharing(false);
+    }
+  };
+
+  const handleRecordTextCopy = async () => {
+    if (!shareRecord || isSharing) {
+      return;
+    }
+
+    setIsSharing(true);
+
+    try {
+      await copyRecordText(shareRecord);
+    } finally {
+      setShareRecord(null);
+      setIsSharing(false);
+    }
+  };
+
   if (!loaded) {
     return (
       <div className="rounded-[32px] bg-white/80 p-5 text-sm text-slate-500 shadow-sm ring-1 ring-white/80 backdrop-blur">
@@ -343,24 +409,10 @@ export const HistoryClient = () => {
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => downloadRecord(record)}
+                      onClick={() => openShareOptions(record)}
                       className="rounded-xl bg-[linear-gradient(135deg,#fff5d1_0%,#ffe8a3_100%)] px-3 py-1.5 text-sm font-semibold text-amber-950 ring-1 ring-amber-200"
                     >
-                      PNG
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => copyRecord(record)}
-                      className="rounded-xl bg-[linear-gradient(135deg,#f4edff_0%,#e8ddff_100%)] px-3 py-1.5 text-sm font-semibold text-violet-950 ring-1 ring-violet-200 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      이미지
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => copyRecordText(record)}
-                      className="rounded-xl bg-[linear-gradient(135deg,#eef2ff_0%,#dfe7ff_100%)] px-3 py-1.5 text-sm font-semibold text-indigo-950 ring-1 ring-indigo-200"
-                    >
-                      텍스트
+                      공유
                     </button>
                     <button
                       type="button"
@@ -434,6 +486,68 @@ export const HistoryClient = () => {
           </div>
         </section>
       ))}
+
+      {shareRecord ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/28 p-4 sm:items-center">
+          <button
+            type="button"
+            aria-label="공유 선택 닫기"
+            onClick={closeShareOptions}
+            className="absolute inset-0"
+          />
+          <div className="relative z-10 w-full max-w-sm rounded-[28px] bg-white p-4 shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-slate-200">
+            <div className="mb-3">
+              <p className="text-base font-bold text-slate-900">공유 방식 선택</p>
+              <p className="mt-1 text-sm text-slate-500">이미지를 저장하거나 번호를 복사할 수 있습니다.</p>
+            </div>
+            <div className="grid gap-2">
+              <button
+                type="button"
+                onClick={handleRecordDownload}
+                disabled={isSharing}
+                className="rounded-2xl bg-[linear-gradient(135deg,#fff7de_0%,#ffefbf_100%)] px-4 py-3.5 text-sm font-semibold text-amber-950 ring-1 ring-amber-200 transition active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                PNG 저장
+              </button>
+              {clipboardSupport.reason !== "samsung_browser" ? (
+                <button
+                  type="button"
+                  onClick={handleRecordImageCopy}
+                  disabled={isSharing}
+                  className="rounded-2xl bg-[linear-gradient(135deg,#f4edff_0%,#e8ddff_100%)] px-4 py-3.5 text-sm font-semibold text-violet-950 ring-1 ring-violet-200 transition active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  이미지 복사
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={handleRecordTextCopy}
+                disabled={isSharing}
+                className="rounded-2xl bg-[linear-gradient(135deg,#eef2ff_0%,#dfe7ff_100%)] px-4 py-3.5 text-sm font-semibold text-indigo-950 ring-1 ring-indigo-200 transition active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                텍스트 복사
+              </button>
+              <button
+                type="button"
+                onClick={closeShareOptions}
+                disabled={isSharing}
+                className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                취소
+              </button>
+            </div>
+            {!clipboardSupport.supported ? (
+              <p className="mt-3 text-sm text-slate-500">
+                {clipboardSupport.reason === "samsung_browser"
+                  ? "삼성 브라우저에서는 이미지 복사 대신 PNG 저장 또는 텍스트 복사를 사용해 주세요."
+                  : clipboardSupport.reason === "secure_context"
+                    ? "보안 연결에서만 이미지 복사를 시도할 수 있습니다."
+                    : "이미지 복사가 실패하면 다른 방식으로 자동 처리됩니다."}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
