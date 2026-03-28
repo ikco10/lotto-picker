@@ -12,7 +12,8 @@ import {
   normalizeRemoteDraws,
 } from "@/src/lib/lotto";
 import {
-  copyLottoNumbersImage,
+  copyLottoNumbersImageWithFallback,
+  copyLottoNumbersText,
   createRecommendationSharePayload,
   downloadLottoNumbers,
 } from "@/src/lib/share";
@@ -161,10 +162,10 @@ export const HistoryClient = () => {
     setShareState((current) => ({ ...current, [record.id]: "이미지 준비 중" }));
 
     try {
-      await copyLottoNumbersImage(createRecommendationSharePayload(record));
+      const result = await copyLottoNumbersImageWithFallback(createRecommendationSharePayload(record));
       setShareState((current) => ({
         ...current,
-        [record.id]: "이미지를 클립보드에 복사했습니다.",
+        [record.id]: result.message,
       }));
     } catch (error) {
       setShareState((current) => ({
@@ -172,7 +173,27 @@ export const HistoryClient = () => {
         [record.id]:
           error instanceof DOMException && error.name === "NotAllowedError"
             ? "클립보드 권한이 필요합니다."
-            : "이미지를 클립보드에 복사하지 못했습니다.",
+            : "이미지를 복사하지 못했습니다.",
+      }));
+    }
+  };
+
+  const copyRecordText = async (record: SavedRecommendation) => {
+    setShareState((current) => ({ ...current, [record.id]: "텍스트 준비 중" }));
+
+    try {
+      await copyLottoNumbersText(createRecommendationSharePayload(record));
+      setShareState((current) => ({
+        ...current,
+        [record.id]: "번호를 클립보드에 복사했습니다.",
+      }));
+    } catch (error) {
+      setShareState((current) => ({
+        ...current,
+        [record.id]:
+          error instanceof DOMException && error.name === "NotAllowedError"
+            ? "클립보드 권한이 필요합니다."
+            : "번호를 복사하지 못했습니다.",
       }));
     }
   };
@@ -329,9 +350,16 @@ export const HistoryClient = () => {
                     <button
                       type="button"
                       onClick={() => copyRecord(record)}
-                      className="rounded-xl bg-[linear-gradient(135deg,#f4edff_0%,#e8ddff_100%)] px-3 py-1.5 text-sm font-semibold text-violet-950 ring-1 ring-violet-200"
+                      className="rounded-xl bg-[linear-gradient(135deg,#f4edff_0%,#e8ddff_100%)] px-3 py-1.5 text-sm font-semibold text-violet-950 ring-1 ring-violet-200 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      복사
+                      이미지
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => copyRecordText(record)}
+                      className="rounded-xl bg-[linear-gradient(135deg,#eef2ff_0%,#dfe7ff_100%)] px-3 py-1.5 text-sm font-semibold text-indigo-950 ring-1 ring-indigo-200"
+                    >
+                      텍스트
                     </button>
                     <button
                       type="button"

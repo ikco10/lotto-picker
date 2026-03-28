@@ -14,9 +14,11 @@ import {
 } from "@/src/lib/lotto";
 import { useCurrentResults } from "@/src/components/app-state-provider";
 import {
-  copyLottoNumbersImage,
+  copyLottoNumbersImageWithFallback,
+  copyLottoNumbersText,
   createRecommendationSharePayload,
   downloadLottoNumbers,
+  getClipboardImageSupport,
 } from "@/src/lib/share";
 import { useSavedRecommendations } from "@/src/hooks/use-saved-recommendations";
 import type { GenerationMode, LottoDraw, PeriodKey, SavedRecommendation } from "@/src/types/lotto";
@@ -94,6 +96,7 @@ export const LottoGenerator = () => {
   const resultsRef = useRef<HTMLElement | null>(null);
   const resultsSignature = JSON.stringify(results);
   const isAlreadySaved = results.length > 0 && records.some((record) => JSON.stringify(record.numbers) === resultsSignature);
+  const clipboardSupport = getClipboardImageSupport();
 
   useEffect(() => {
     let active = true;
@@ -214,13 +217,34 @@ export const LottoGenerator = () => {
     setShareFeedback(null);
 
     try {
-      await copyLottoNumbersImage(sharePayload);
-      setShareFeedback("이미지를 클립보드에 복사했습니다.");
+      const result = await copyLottoNumbersImageWithFallback(sharePayload);
+      setShareFeedback(result.message);
+    } catch {
+      setShareFeedback("이미지를 복사하지 못했습니다.");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const copyCurrentResultsText = async () => {
+    if (results.length === 0 || isSharing) {
+      return;
+    }
+
+    setIsSharing(true);
+    setShareOptionsOpen(false);
+    setShareFeedback(null);
+
+    try {
+      await copyLottoNumbersText(sharePayload);
+      setShareFeedback("번호를 클립보드에 복사했습니다.");
     } catch (error) {
       if (error instanceof DOMException && error.name === "NotAllowedError") {
         setShareFeedback("클립보드 권한이 필요합니다.");
+      } else if (error instanceof Error && error.message === "secure context required") {
+        setShareFeedback("보안 연결에서만 복사할 수 있습니다.");
       } else {
-        setShareFeedback("이미지를 클립보드에 복사하지 못했습니다.");
+        setShareFeedback("번호를 복사하지 못했습니다.");
       }
     } finally {
       setIsSharing(false);
@@ -409,7 +433,15 @@ export const LottoGenerator = () => {
                   disabled={isSharing}
                   className="rounded-2xl bg-[linear-gradient(135deg,#f4edff_0%,#e8ddff_100%)] px-4 py-3.5 text-sm font-semibold text-violet-950 ring-1 ring-violet-200 transition active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  클립보드 복사
+                  이미지 복사
+                </button>
+                <button
+                  type="button"
+                  onClick={copyCurrentResultsText}
+                  disabled={isSharing}
+                  className="rounded-2xl bg-[linear-gradient(135deg,#eef2ff_0%,#dfe7ff_100%)] px-4 py-3.5 text-sm font-semibold text-indigo-950 ring-1 ring-indigo-200 transition active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  텍스트 복사
                 </button>
                 <button
                   type="button"
@@ -419,6 +451,13 @@ export const LottoGenerator = () => {
                   취소
                 </button>
               </div>
+              {!clipboardSupport.supported ? (
+                <p className="mt-3 text-sm text-slate-500">
+                  {clipboardSupport.reason === "secure_context"
+                    ? "보안 연결에서만 이미지 복사를 시도할 수 있습니다."
+                    : "이미지 복사가 실패하면 PNG 저장으로 자동 전환됩니다."}
+                </p>
+              ) : null}
             </div>
           </div>
         ) : null}

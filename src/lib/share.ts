@@ -9,6 +9,11 @@ type SharePayload = {
   numbers: number[][];
 };
 
+export type ClipboardSupport = {
+  supported: boolean;
+  reason?: "secure_context" | "clipboard_api" | "clipboard_item";
+};
+
 const WIDTH = 960;
 const OUTER_PADDING = 32;
 const SET_HEIGHT = 124;
@@ -162,11 +167,21 @@ export const copyLottoNumbersImage = async (payload: SharePayload) => {
         : null;
 
   if (
+    typeof window === "undefined" ||
+    !window.isSecureContext
+  ) {
+    throw new Error("secure context required");
+  }
+
+  if (
     typeof navigator === "undefined" ||
-    !navigator.clipboard ||
-    !ClipboardItemCtor
+    !navigator.clipboard
   ) {
     throw new Error("clipboard unsupported");
+  }
+
+  if (!ClipboardItemCtor) {
+    throw new Error("clipboard item unsupported");
   }
 
   if (
@@ -179,11 +194,112 @@ export const copyLottoNumbersImage = async (payload: SharePayload) => {
 
   await navigator.clipboard.write([
     new ClipboardItemCtor({
-      "image/png": Promise.resolve(blob),
+      [blob.type]: blob,
     }),
   ]);
 
   return "copied" as const;
+};
+
+export const copyLottoNumbersText = async (payload: SharePayload) => {
+  if (
+    typeof window === "undefined" ||
+    !window.isSecureContext
+  ) {
+    throw new Error("secure context required");
+  }
+
+  if (
+    typeof navigator === "undefined" ||
+    !navigator.clipboard
+  ) {
+    throw new Error("clipboard unsupported");
+  }
+
+  const text = payload.numbers
+    .map((set, index) => `${index + 1}세트: ${set.join(", ")}`)
+    .join("\n");
+
+  await navigator.clipboard.writeText(text);
+  return "copied" as const;
+};
+
+export const copyLottoNumbersImageWithFallback = async (payload: SharePayload) => {
+  try {
+    await copyLottoNumbersImage(payload);
+    return {
+      status: "copied" as const,
+      message: "이미지를 클립보드에 복사했습니다.",
+    };
+  } catch (error) {
+    await downloadLottoNumbers(payload);
+
+    if (error instanceof DOMException && error.name === "NotAllowedError") {
+      return {
+        status: "downloaded" as const,
+        message: "복사 권한이 없어 PNG 파일로 저장했습니다.",
+      };
+    }
+
+    if (error instanceof Error) {
+      if (error.message === "secure context required") {
+        return {
+          status: "downloaded" as const,
+          message: "보안 연결이 필요해 PNG 파일로 저장했습니다.",
+        };
+      }
+
+      if (error.message === "clipboard unsupported" || error.message === "clipboard item unsupported") {
+        return {
+          status: "downloaded" as const,
+          message: "현재 브라우저에서 이미지 복사를 지원하지 않아 PNG 파일로 저장했습니다.",
+        };
+      }
+
+      if (error.message === "clipboard png unsupported") {
+        return {
+          status: "downloaded" as const,
+          message: "현재 브라우저에서 PNG 복사를 지원하지 않아 PNG 파일로 저장했습니다.",
+        };
+      }
+    }
+
+    return {
+      status: "downloaded" as const,
+      message: "이미지 복사에 실패해 PNG 파일로 저장했습니다.",
+    };
+  }
+};
+
+export const getClipboardImageSupport = (): ClipboardSupport => {
+  if (typeof window === "undefined" || !window.isSecureContext) {
+    return { supported: false, reason: "secure_context" };
+  }
+
+  const ClipboardItemCtor =
+    typeof ClipboardItem !== "undefined"
+      ? ClipboardItem
+      : typeof window !== "undefined" && "ClipboardItem" in window
+        ? window.ClipboardItem
+        : null;
+
+  if (!navigator.clipboard) {
+    return { supported: false, reason: "clipboard_api" };
+  }
+
+  if (!ClipboardItemCtor) {
+    return { supported: false, reason: "clipboard_item" };
+  }
+
+  if (
+    "supports" in ClipboardItemCtor &&
+    typeof ClipboardItemCtor.supports === "function" &&
+    !ClipboardItemCtor.supports("image/png")
+  ) {
+    return { supported: false, reason: "clipboard_item" };
+  }
+
+  return { supported: true };
 };
 
 export const createRecommendationSharePayload = (
