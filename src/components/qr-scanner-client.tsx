@@ -9,7 +9,8 @@ import {
   normalizeRemoteDraws,
   parseLottoQrValue,
 } from "@/src/lib/lotto";
-import type { LottoDraw, ParsedQrTicket } from "@/src/lib/lotto";
+import type { ParsedQrTicket } from "@/src/lib/lotto";
+import type { LottoDraw } from "@/src/types/lotto";
 
 type BarcodeDetectorResult = {
   rawValue?: string;
@@ -159,7 +160,7 @@ export const QrScannerClient = () => {
             >
               {detectorSupported ? "이 브라우저에서 QR 인식 가능" : "이 브라우저에서 QR 인식 미지원"}
             </span>
-            {previewUrl ? (
+            {ticket ? (
               <button
                 type="button"
                 onClick={reset}
