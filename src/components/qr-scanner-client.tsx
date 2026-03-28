@@ -35,6 +35,7 @@ export const QrScannerClient = () => {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("이미지를 선택하면 QR 코드를 읽습니다.");
   const [ticket, setTicket] = useState<ParsedQrTicket | null>(null);
+  const [rawQrValue, setRawQrValue] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const detectorSupported = getBarcodeDetector() !== null;
 
@@ -77,6 +78,7 @@ export const QrScannerClient = () => {
     setStatus("loading");
     setMessage("QR 코드를 읽는 중입니다.");
     setTicket(null);
+    setRawQrValue(null);
 
     const Detector = getBarcodeDetector();
 
@@ -98,11 +100,13 @@ export const QrScannerClient = () => {
         return;
       }
 
-      const parsed = parseLottoQrValue(detections[0].rawValue);
+      const detectedValue = detections[0].rawValue;
+      setRawQrValue(detectedValue);
+      const parsed = parseLottoQrValue(detectedValue);
 
       if (!parsed) {
         setStatus("error");
-        setMessage("로또 QR 형식을 해석하지 못했습니다.");
+        setMessage("QR은 읽었지만 로또 형식을 해석하지 못했습니다.");
         return;
       }
 
@@ -119,6 +123,7 @@ export const QrScannerClient = () => {
     setStatus("idle");
     setMessage("이미지를 선택하면 QR 코드를 읽습니다.");
     setTicket(null);
+    setRawQrValue(null);
 
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -160,7 +165,7 @@ export const QrScannerClient = () => {
             >
               {detectorSupported ? "이 브라우저에서 QR 인식 가능" : "이 브라우저에서 QR 인식 미지원"}
             </span>
-            {ticket ? (
+            {status !== "idle" ? (
               <button
                 type="button"
                 onClick={reset}
@@ -254,8 +259,20 @@ export const QrScannerClient = () => {
               </div>
             </div>
           ) : (
-            <div className="rounded-[24px] bg-slate-50/90 px-4 py-8 text-center text-sm text-slate-500 ring-1 ring-white/80">
-              아직 읽은 QR 결과가 없습니다.
+            <div className="space-y-3">
+              <div className="rounded-[24px] bg-slate-50/90 px-4 py-8 text-center text-sm text-slate-500 ring-1 ring-white/80">
+                {rawQrValue
+                  ? "QR 원문은 읽었지만 로또 형식으로 변환하지 못했습니다."
+                  : "아직 읽은 QR 결과가 없습니다."}
+              </div>
+              {rawQrValue ? (
+                <div className="rounded-[24px] bg-[linear-gradient(135deg,#ffffff_0%,#f8fbfd_100%)] px-4 py-4 ring-1 ring-white/90">
+                  <p className="text-sm font-semibold text-slate-900">읽은 QR 원문</p>
+                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-sm leading-6 text-slate-600">
+                    {rawQrValue}
+                  </pre>
+                </div>
+              ) : null}
             </div>
           )}
         </div>

@@ -570,17 +570,15 @@ export const parseLottoQrValue = (rawValue: string): ParsedQrTicket | null => {
   }
 
   const decoded = decodeURIComponent(encoded);
-  const segments = decoded.split("q").filter(Boolean);
+  const roundMatch = decoded.match(/(\d{4,5})(?=q\d{12})/);
 
-  if (segments.length < 2 || !/^\d{4}$/.test(segments[0])) {
+  if (!roundMatch) {
     return null;
   }
 
-  const round = Number.parseInt(segments[0], 10);
-  const numbers = segments
-    .slice(1)
-    .map((segment) => segment.match(/^\d{12}/)?.[0] ?? null)
-    .filter((segment): segment is string => segment !== null)
+  const round = Number.parseInt(roundMatch[1], 10);
+  const numberGroups = Array.from(decoded.matchAll(/q(\d{12})/g), (match) => match[1]);
+  const numbers = numberGroups
     .map((segment) => Array.from({ length: 6 }, (_, index) => Number.parseInt(segment.slice(index * 2, index * 2 + 2), 10)))
     .filter(
       (set) =>
