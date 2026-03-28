@@ -182,6 +182,27 @@ export const downloadLottoNumbers = async (payload: SharePayload) => {
   return "downloaded" as const;
 };
 
+export const shareLottoNumbers = async (payload: SharePayload) => {
+  const blob = await createShareBlob(payload);
+  const file = new File([blob], `lotto-picker-${Date.now()}.png`, {
+    type: "image/png",
+  });
+
+  if (typeof navigator === "undefined" || !("share" in navigator)) {
+    throw new Error("share unsupported");
+  }
+
+  const sharePayload =
+    "canShare" in navigator && typeof navigator.canShare === "function"
+      ? navigator.canShare({ files: [file] })
+        ? { files: [file], title: payload.title, text: payload.caption }
+        : { title: payload.title, text: payload.caption }
+      : { files: [file], title: payload.title, text: payload.caption };
+
+  await navigator.share(sharePayload);
+  return "shared" as const;
+};
+
 export const copyLottoNumbersImage = async (payload: SharePayload) => {
   if (typeof document !== "undefined" && !document.hasFocus()) {
     throw new DOMException("Document is not focused.", "NotAllowedError");
@@ -285,49 +306,79 @@ export const copyLottoNumbersImageWithFallback = async (payload: SharePayload) =
       message: "이미지를 클립보드에 복사했습니다.",
     };
   } catch (error) {
-    await downloadLottoNumbers(payload);
-
-    if (error instanceof DOMException && error.name === "NotAllowedError") {
+    try {
+      await copyLottoNumbersText(payload);
       return {
-        status: "downloaded" as const,
-        message: "복사 권한 또는 포커스 문제로 PNG 파일로 저장했습니다.",
+        status: "copied_text" as const,
+        message: "이미지 복사에 실패해 번호 텍스트를 클립보드에 복사했습니다.",
       };
-    }
+    } catch (textError) {
+      try {
+        await shareLottoNumbers(payload);
+        return {
+          status: "shared" as const,
+          message: "이미지 복사에 실패해 공유하기를 열었습니다.",
+        };
+      } catch (shareError) {
+        await downloadLottoNumbers(payload);
 
-    if (error instanceof DOMException && error.name === "DataError") {
-      return {
-        status: "downloaded" as const,
-        message: "브라우저가 이미지 클립보드를 지원하지 않아 PNG 파일로 저장했습니다.",
-      };
-    }
+        if (error instanceof DOMException && error.name === "NotAllowedError") {
+          return {
+            status: "downloaded" as const,
+            message: "이미지 복사와 텍스트 복사에 실패해 PNG 파일로 저장했습니다.",
+          };
+        }
 
-    if (error instanceof Error) {
-      if (error.message === "secure context required") {
+        if (error instanceof DOMException && error.name === "DataError") {
+          return {
+            status: "downloaded" as const,
+            message: "브라우저가 이미지 클립보드를 지원하지 않아 PNG 파일로 저장했습니다.",
+          };
+        }
+
+        if (error instanceof Error) {
+          if (error.message === "secure context required") {
+            return {
+              status: "downloaded" as const,
+              message: "보안 연결 제약으로 PNG 파일로 저장했습니다.",
+            };
+          }
+
+          if (error.message === "clipboard unsupported" || error.message === "clipboard item unsupported") {
+            return {
+              status: "downloaded" as const,
+              message: "현재 브라우저에서 이미지 복사를 지원하지 않아 PNG 파일로 저장했습니다.",
+            };
+          }
+
+          if (error.message === "clipboard png unsupported") {
+            return {
+              status: "downloaded" as const,
+              message: "현재 브라우저에서 PNG 복사를 지원하지 않아 PNG 파일로 저장했습니다.",
+            };
+          }
+        }
+
+        if (shareError instanceof DOMException && shareError.name === "AbortError") {
+          return {
+            status: "cancelled" as const,
+            message: "공유가 취소되었습니다.",
+          };
+        }
+
+        if (textError instanceof DOMException && textError.name === "NotAllowedError") {
+          return {
+            status: "downloaded" as const,
+            message: "복사 권한이 없어 PNG 파일로 저장했습니다.",
+          };
+        }
+
         return {
           status: "downloaded" as const,
-          message: "보안 연결이 필요해 PNG 파일로 저장했습니다.",
-        };
-      }
-
-      if (error.message === "clipboard unsupported" || error.message === "clipboard item unsupported") {
-        return {
-          status: "downloaded" as const,
-          message: "현재 브라우저에서 이미지 복사를 지원하지 않아 PNG 파일로 저장했습니다.",
-        };
-      }
-
-      if (error.message === "clipboard png unsupported") {
-        return {
-          status: "downloaded" as const,
-          message: "현재 브라우저에서 PNG 복사를 지원하지 않아 PNG 파일로 저장했습니다.",
+          message: "이미지 복사에 실패해 PNG 파일로 저장했습니다.",
         };
       }
     }
-
-    return {
-      status: "downloaded" as const,
-      message: "이미지 복사에 실패해 PNG 파일로 저장했습니다.",
-    };
   }
 };
 
