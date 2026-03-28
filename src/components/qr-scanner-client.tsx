@@ -1,7 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+
+import { sampleDraws } from "@/src/data/lotto-sample";
+import { LottoBall } from "@/src/components/lotto-ball";
+import {
+  getMatchSummary,
+  normalizeRemoteDraws,
+  parseLottoQrValue,
+} from "@/src/lib/lotto";
+import type { LottoDraw, ParsedQrTicket } from "@/src/lib/lotto";
 
 type BarcodeDetectorResult = {
   rawValue?: string;
@@ -22,20 +30,42 @@ const getBarcodeDetector = (): BarcodeDetectorCtor | null => {
 };
 
 export const QrScannerClient = () => {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [draws, setDraws] = useState<LottoDraw[]>(sampleDraws);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("이미지를 선택하면 QR 코드를 읽습니다.");
-  const [result, setResult] = useState<string | null>(null);
+  const [ticket, setTicket] = useState<ParsedQrTicket | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const detectorSupported = getBarcodeDetector() !== null;
 
   useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
+    let active = true;
+
+    const loadDraws = async () => {
+      try {
+        const response = await fetch("/api/lotto", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("fetch failed");
+        }
+
+        const data = await response.json();
+        const normalized = normalizeRemoteDraws(data.draws);
+
+        if (active && normalized.length > 0) {
+          setDraws(normalized);
+        }
+      } catch {
       }
     };
-  }, [previewUrl]);
+
+    void loadDraws();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -43,16 +73,9 @@ export const QrScannerClient = () => {
     if (!file) {
       return;
     }
-
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-
-    const nextPreviewUrl = URL.createObjectURL(file);
-    setPreviewUrl(nextPreviewUrl);
     setStatus("loading");
     setMessage("QR 코드를 읽는 중입니다.");
-    setResult(null);
+    setTicket(null);
 
     const Detector = getBarcodeDetector();
 
@@ -74,7 +97,15 @@ export const QrScannerClient = () => {
         return;
       }
 
-      setResult(detections[0].rawValue);
+      const parsed = parseLottoQrValue(detections[0].rawValue);
+
+      if (!parsed) {
+        setStatus("error");
+        setMessage("로또 QR 형식을 해석하지 못했습니다.");
+        return;
+      }
+
+      setTicket(parsed);
       setStatus("success");
       setMessage("QR 코드를 읽었습니다.");
     } catch {
@@ -84,19 +115,16 @@ export const QrScannerClient = () => {
   };
 
   const reset = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-
-    setPreviewUrl(null);
     setStatus("idle");
     setMessage("이미지를 선택하면 QR 코드를 읽습니다.");
-    setResult(null);
+    setTicket(null);
 
     if (inputRef.current) {
       inputRef.current.value = "";
     }
   };
+
+  const draw = ticket ? draws.find((item) => item.round === ticket.round) ?? null : null;
 
   return (
     <div className="space-y-5">
@@ -146,23 +174,6 @@ export const QrScannerClient = () => {
 
       <section className="rounded-[32px] bg-white/80 p-5 shadow-sm ring-1 ring-white/80 backdrop-blur">
         <div className="space-y-4">
-          {previewUrl ? (
-            <div className="overflow-hidden rounded-[24px] ring-1 ring-slate-200">
-              <Image
-                src={previewUrl}
-                alt="업로드한 QR 이미지 미리보기"
-                width={1200}
-                height={1200}
-                className="block h-auto w-full object-cover"
-                unoptimized
-              />
-            </div>
-          ) : (
-            <div className="rounded-[24px] bg-slate-50/90 px-4 py-8 text-center text-sm text-slate-500 ring-1 ring-white/80">
-              아직 업로드한 이미지가 없습니다.
-            </div>
-          )}
-
           <div className="rounded-[24px] bg-slate-50/90 px-4 py-4 ring-1 ring-white/80">
             <p className="text-sm font-semibold text-slate-900">
               {status === "loading" ? "분석 중" : status === "success" ? "인식 완료" : status === "error" ? "인식 실패" : "대기 중"}
@@ -170,12 +181,82 @@ export const QrScannerClient = () => {
             <p className="mt-2 text-sm leading-6 text-slate-500">{message}</p>
           </div>
 
-          <div className="rounded-[24px] bg-[linear-gradient(135deg,#ffffff_0%,#f8fbfd_100%)] px-4 py-4 ring-1 ring-white/90">
-            <p className="text-sm font-semibold text-slate-900">읽어온 QR 원문</p>
-            <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-sm leading-6 text-slate-600">
-              {result ?? "아직 읽은 결과가 없습니다."}
-            </pre>
-          </div>
+          {ticket ? (
+            <div className="space-y-4">
+              <div className="rounded-[24px] bg-[linear-gradient(135deg,#ffffff_0%,#f8fbfd_100%)] px-4 py-4 ring-1 ring-white/90">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xl font-black text-slate-900">{ticket.round}회차</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {draw ? `${draw.drawDate} 추첨 기준` : "현재 미추첨 또는 결과 데이터 없음"}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">
+                    {ticket.numbers.length}세트
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {ticket.numbers.map((set, index) => {
+                  const summary = draw ? getMatchSummary(set, draw) : null;
+
+                  return (
+                    <div
+                      key={`${ticket.round}-${index}`}
+                      className="rounded-[22px] bg-[linear-gradient(135deg,#ffffff_0%,#f7fbfd_100%)] px-3.5 py-3 ring-1 ring-white/90"
+                    >
+                      <div className="grid grid-cols-6 justify-items-center gap-1.5">
+                        {set.map((value) => (
+                          <LottoBall
+                            key={`${ticket.round}-${index}-${value}`}
+                            value={value}
+                            className={
+                              draw
+                                ? draw.numbers.includes(value)
+                                  ? "ring-2 ring-emerald-400 shadow-[0_8px_18px_rgba(16,185,129,0.18)]"
+                                  : "opacity-45"
+                                : ""
+                            }
+                          />
+                        ))}
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+                          {index + 1}세트
+                        </span>
+                        {draw ? (
+                          <>
+                            <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-100">
+                              {summary?.matchCount ?? 0}개 일치{summary?.bonusMatched ? " + 보너스" : ""}
+                            </span>
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${
+                                summary?.rank
+                                  ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+                                  : "bg-slate-50 text-slate-500 ring-slate-200"
+                              }`}
+                            >
+                              {summary?.rank ? `${summary.rank}등` : "낙첨"}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+                            현재 미추첨
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-[24px] bg-slate-50/90 px-4 py-8 text-center text-sm text-slate-500 ring-1 ring-white/80">
+              아직 읽은 QR 결과가 없습니다.
+            </div>
+          )}
         </div>
       </section>
     </div>

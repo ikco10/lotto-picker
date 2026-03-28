@@ -521,6 +521,12 @@ export type MatchSummary = {
   rank: 1 | 2 | 3 | 4 | 5 | null;
 };
 
+export type ParsedQrTicket = {
+  round: number;
+  numbers: number[][];
+  rawValue: string;
+};
+
 export const getMatchSummary = (numbers: number[], draw: LottoDraw): MatchSummary => {
   const matchCount = numbers.filter((value) => draw.numbers.includes(value)).length;
   const bonusMatched = numbers.includes(draw.bonus);
@@ -546,6 +552,51 @@ export const getMatchSummary = (numbers: number[], draw: LottoDraw): MatchSummar
   }
 
   return { matchCount, bonusMatched, rank: null };
+};
+
+export const parseLottoQrValue = (rawValue: string): ParsedQrTicket | null => {
+  const trimmed = rawValue.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  let encoded = trimmed;
+
+  try {
+    const url = new URL(trimmed);
+    encoded = url.searchParams.get("v") ?? trimmed;
+  } catch {
+  }
+
+  const decoded = decodeURIComponent(encoded);
+  const segments = decoded.split("q").filter(Boolean);
+
+  if (segments.length < 2 || !/^\d{4}$/.test(segments[0])) {
+    return null;
+  }
+
+  const round = Number.parseInt(segments[0], 10);
+  const numbers = segments
+    .slice(1)
+    .map((segment) => segment.match(/^\d{12}/)?.[0] ?? null)
+    .filter((segment): segment is string => segment !== null)
+    .map((segment) => Array.from({ length: 6 }, (_, index) => Number.parseInt(segment.slice(index * 2, index * 2 + 2), 10)))
+    .filter(
+      (set) =>
+        set.length === 6 &&
+        set.every((value) => Number.isInteger(value) && value >= 1 && value <= 45),
+    );
+
+  if (numbers.length === 0) {
+    return null;
+  }
+
+  return {
+    round,
+    numbers,
+    rawValue: trimmed,
+  };
 };
 
 const KST_OFFSET = 9 * 60 * 60 * 1000;
