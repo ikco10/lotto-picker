@@ -6,8 +6,8 @@ import { AppStateProvider } from "@/src/components/app-state-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "로또 가중치 추천기",
-  description: "과거 데이터 기반 확률형 추천기",
+  title: "로또 피커",
+  description: "데이터 기반 확률 생성 모델",
 };
 
 export default function RootLayout({
