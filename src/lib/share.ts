@@ -138,8 +138,9 @@ const createShareBlob = async (payload: SharePayload) => {
   }
 
   context.drawImage(image, 0, 0, WIDTH, height);
+  const blob = await canvasToBlob(canvas);
 
-  return canvasToBlob(canvas);
+  return blob.slice(0, blob.size, "image/png");
 };
 
 const downloadFile = (blob: Blob, fileName: string) => {
@@ -151,6 +152,30 @@ const downloadFile = (blob: Blob, fileName: string) => {
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 
+const copyTextWithExecCommand = (text: string) => {
+  if (typeof document === "undefined") {
+    return false;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.top = "0";
+  textarea.style.left = "0";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  return copied;
+};
+
 export const downloadLottoNumbers = async (payload: SharePayload) => {
   const blob = await createShareBlob(payload);
   downloadFile(blob, `lotto-picker-${Date.now()}.png`);
@@ -158,6 +183,10 @@ export const downloadLottoNumbers = async (payload: SharePayload) => {
 };
 
 export const copyLottoNumbersImage = async (payload: SharePayload) => {
+  if (typeof document !== "undefined" && !document.hasFocus()) {
+    throw new DOMException("Document is not focused.", "NotAllowedError");
+  }
+
   const blob = await createShareBlob(payload);
   const ClipboardItemCtor =
     typeof ClipboardItem !== "undefined"
@@ -194,7 +223,7 @@ export const copyLottoNumbersImage = async (payload: SharePayload) => {
 
   await navigator.clipboard.write([
     new ClipboardItemCtor({
-      [blob.type]: blob,
+      "image/png": blob,
     }),
   ]);
 
@@ -206,6 +235,14 @@ export const copyLottoNumbersText = async (payload: SharePayload) => {
     typeof window === "undefined" ||
     !window.isSecureContext
   ) {
+    const text = payload.numbers
+      .map((set, index) => `${index + 1}세트: ${set.join(", ")}`)
+      .join("\n");
+
+    if (copyTextWithExecCommand(text)) {
+      return "copied" as const;
+    }
+
     throw new Error("secure context required");
   }
 
@@ -213,6 +250,14 @@ export const copyLottoNumbersText = async (payload: SharePayload) => {
     typeof navigator === "undefined" ||
     !navigator.clipboard
   ) {
+    const text = payload.numbers
+      .map((set, index) => `${index + 1}세트: ${set.join(", ")}`)
+      .join("\n");
+
+    if (copyTextWithExecCommand(text)) {
+      return "copied" as const;
+    }
+
     throw new Error("clipboard unsupported");
   }
 
@@ -220,7 +265,15 @@ export const copyLottoNumbersText = async (payload: SharePayload) => {
     .map((set, index) => `${index + 1}세트: ${set.join(", ")}`)
     .join("\n");
 
-  await navigator.clipboard.writeText(text);
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    if (copyTextWithExecCommand(text)) {
+      return "copied" as const;
+    }
+    throw new Error("text clipboard failed");
+  }
+
   return "copied" as const;
 };
 
@@ -237,7 +290,14 @@ export const copyLottoNumbersImageWithFallback = async (payload: SharePayload) =
     if (error instanceof DOMException && error.name === "NotAllowedError") {
       return {
         status: "downloaded" as const,
-        message: "복사 권한이 없어 PNG 파일로 저장했습니다.",
+        message: "복사 권한 또는 포커스 문제로 PNG 파일로 저장했습니다.",
+      };
+    }
+
+    if (error instanceof DOMException && error.name === "DataError") {
+      return {
+        status: "downloaded" as const,
+        message: "브라우저가 이미지 클립보드를 지원하지 않아 PNG 파일로 저장했습니다.",
       };
     }
 

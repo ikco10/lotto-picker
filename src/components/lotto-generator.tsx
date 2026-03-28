@@ -190,7 +190,6 @@ export const LottoGenerator = () => {
     }
 
     setIsSharing(true);
-    setShareOptionsOpen(false);
     setShareFeedback(null);
 
     try {
@@ -203,6 +202,7 @@ export const LottoGenerator = () => {
         setShareFeedback("PNG 파일을 저장하지 못했습니다.");
       }
     } finally {
+      setShareOptionsOpen(false);
       setIsSharing(false);
     }
   };
@@ -213,7 +213,6 @@ export const LottoGenerator = () => {
     }
 
     setIsSharing(true);
-    setShareOptionsOpen(false);
     setShareFeedback(null);
 
     try {
@@ -222,6 +221,7 @@ export const LottoGenerator = () => {
     } catch {
       setShareFeedback("이미지를 복사하지 못했습니다.");
     } finally {
+      setShareOptionsOpen(false);
       setIsSharing(false);
     }
   };
@@ -232,7 +232,6 @@ export const LottoGenerator = () => {
     }
 
     setIsSharing(true);
-    setShareOptionsOpen(false);
     setShareFeedback(null);
 
     try {
@@ -247,6 +246,7 @@ export const LottoGenerator = () => {
         setShareFeedback("번호를 복사하지 못했습니다.");
       }
     } finally {
+      setShareOptionsOpen(false);
       setIsSharing(false);
     }
   };
